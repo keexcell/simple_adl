@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+P#!/usr/bin/env python
 """
 Generic python script.
 """
