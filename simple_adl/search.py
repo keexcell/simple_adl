@@ -2,7 +2,7 @@
 """
 Generic python script.
 """
-__author__ = "Sidney Mau"
+__author__ = "Sidney Mau, Kabelo Tsiane"
 
 import sys
 import os

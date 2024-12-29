@@ -1,8 +1,8 @@
-P#!/usr/bin/env python
+#!/usr/bin/env python
 """
 Generic python script.
 """
-__author__ = "Sidney Mau"
+__author__ = "Sidney Mau, Kabelo Tsiane"
 
 import glob
 import os
