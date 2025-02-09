@@ -1,93 +1,89 @@
-#!/usr/bin/env python
 """
-Generic python script.
+Query Rubin Table Access Protocol for DC2 data.
 """
-__author__ = "Sidney Mau"
+__author__ = "Sidney Mau and Kabelo Tsiane"
 
-import numpy as np
-
-# Astropy
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-#-------------------------------------------------------------------------------
+from dustmaps.sfd import SFDQuery
+from dustmaps.config import config
 
 # Redenning coefficients
-R_g = 3.185
-R_r = 2.140
-R_i = 1.571
+# R_g = 3.185
+# R_r = 2.140
+# R_i = 1.571   # I can't find any reference for these old values 
 
-def query(service, ra, dec, radius=1.0, gmax=23.5, stars=True, galaxies=False):
-    """Return data queried from Rubin TAP
+R_g = 3.64
+R_r = 2.70
+R_i = 2.06
+
+config['data_dir'] = '/home/kb/software/simple_adl/notebooks/dustmaps'     # dustmaps
+sfd = SFDQuery()
+
+def query(service, ra, dec, radius=1.0, gmax=23.5):
+    """ Return data queried from Rubin TAP
+    
     Parameters
     ----------
-    service : TAP service [str]
-    ra      : Right Ascension [deg]
-    dec     : Declination [deg]
-    radius  : radius around (ra, dec) [deg]
+    service: str 
+        TAP service
+    ra: float
+        Right Ascension [deg]
+    dec: float 
+        Declination [deg]
+    radius: float
+        Radius around (ra, dec) [deg]
 
     Returns
     -------
-    data : numpy recarray of data
+    good_results: DataFrame
     """
 
-    # Define our reference position on the sky and cone radius in arcseconds
-    # to use in all following examples
+    # Redenning coefficients
+    # R_g = 3.185
+    # R_r = 2.140
+    # R_i = 1.571   # I can't find any reference for these old values 
+
+    R_g = 3.64
+    R_r = 2.70
+    R_i = 2.06
+
+    # Define our reference position on the sky and E(B-V) at that position using SFD reddening maps
     coord = SkyCoord(ra=ra*u.degree, dec=dec*u.degree, frame='icrs')
+    E_BV = sfd(coord)
     radius = radius * u.deg
+
+    A_g = R_g*E_BV
+    A_r = R_r*E_BV
+    A_i = R_i*E_BV
     
     # Quality selection and star--galaxy separation adapted from
     # https://github.com/LSSTDESC/DC2-analysis/blob/master/tutorials/object_pandas_stellar_locus.ipynb
 
-    snr_threshold = 25
+    snr_threshold = 5
     mag_err_threshold = 1/snr_threshold
-    
-    # bright_snr_threshold = 100
-    # mag_err_threshold = 1/bright_snr_threshold
+    mag_threshold =26
+
+    # assuming extendedness is the same in all bands we assume g_extendedness matches extendedness for dp0.2 tables
     
     safe_max_extended = 1.0
     
-    if stars and not galaxies:
-        query = f"""
-            SELECT
-                ra, dec,
-                mag_g, mag_r,
-                magerr_g, magerr_r,
-                mag_g - {R_g} AS mag_corrected_g,
-                mag_r - {R_r} AS mag_corrected_r,
-                extendedness
-            FROM dp01_dc2_catalogs.object
-            WHERE CONTAINS(POINT('ICRS', ra, dec), CIRCLE('ICRS', {str(coord.ra.value)}, {str(coord.dec.value)}, {str(radius.value)})) = 1
-            AND extendedness < {str(safe_max_extended)}
-        """
-        # query = f"""
-        #     SELECT
-        #         ra, dec, mag_g, mag_r, mag_i,
-        #         magerr_g, magerr_r, magerr_i,
-        #         tract, patch, good, clean,
-        #         mag_i_cModel, psFlux_i
-        #     FROM dp01_dc2_catalogs.object
-        #     WHERE CONTAINS(POINT('ICRS', ra, dec), CIRCLE('ICRS', {str(coord.ra.value)}, {str(coord.dec.value)}, {str(radius.value)})) = 1
-        #     AND (  ((mag_i - mag_i_cModel) < 0.03)
-        #         OR ( ((mag_i - mag_i_cModel) < 0.1)
-        #            AND (mag_i < 22)) )
-        # """
-    elif not stars and galaxies:
-        query = f"""
-            SELECT
-                ra, dec, mag_g, mag_r, mag_i,
-                magerr_g, magerr_r, magerr_i,
-                tract, patch, extendedness, good, clean
-            FROM dp01_dc2_catalogs.object
-            WHERE CONTAINS(POINT('ICRS', ra, dec), CIRCLE('ICRS', {str(coord.ra.value)}, {str(coord.dec.value)}, {str(radius.value)})) = 1
-            AND extendedness >= {str(safe_max_extended)}
-        """
-    else:
-        print("stars _and_ galaxies are not supported at the moment; please choose one")
-
-    # For more detailed analysis of results, converting
-    # to a pandas dataframe is often very useful
-    # results = service.search(query).to_table().to_pandas()
+    query = f"""
+        SELECT
+            coord_ra AS ra, coord_dec AS dec,
+            scisql_nanojanskyToAbMag(g_cModelFlux) AS mag_g,
+            scisql_nanojanskyToAbMag(r_cModelFlux) AS mag_r,
+            scisql_nanojanskyToAbMagSigma(g_cModelFlux, g_cModelFluxErr) AS magerr_g, 
+            scisql_nanojanskyToAbMagSigma(r_cModelFlux, r_cModelFluxErr) AS magerr_r,
+            scisql_nanojanskyToAbMag(g_cModelFlux) - {A_g} AS mag_corrected_g,
+            scisql_nanojanskyToAbMag(r_cModelFlux) - {A_r} AS mag_corrected_r,
+            g_extendedness
+        FROM dp02_dc2_catalogs.Object
+        WHERE CONTAINS(POINT('ICRS', coord_ra, coord_dec), CIRCLE('ICRS', {coord.ra.value}, {coord.dec.value}, {radius.value})) = 1
+        AND g_extendedness < {str(safe_max_extended)}
+    """
+    
     job = service.submit_job(query)
     job.run()
     job.wait(phases=['COMPLETED', 'ERROR'])
@@ -100,87 +96,54 @@ def query(service, ra, dec, radius=1.0, gmax=23.5, stars=True, galaxies=False):
     
     return good_results
 
-    # query_stars = results[good_snr & star_selection]
-    # query_galaxies = results[good_snr & galaxy_selection]
+    
+def query_truth(service, ra, dec, radius=1):
+    """ Return data queried from Rubin TAP using true star-galaxy separation
+    Parameters
+    ----------
+    service: str 
+        TAP service
+    ra: float
+        Right Ascension [deg]
+    dec: float 
+        Declination [deg]
+    radius: float
+        Radius around (ra, dec) [deg]
 
-    # if stars and not galaxies:
-    #     return query_stars
-    # elif not stars and galaxies:
-    #     return query_galaxies
-    # elif stars and galaxies:
-    #     return query_stars, query_galaxies
-    # else:
-    #     return None
-
-    # return results  # deprecated return call; see if/else statements above
-
-
-#-------------------------------------------------------------------------------
-
-if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser()
-    #parser.add_argument('--profile',type=str,required=False,
-    #                    help='Profile for data lab query [str]')
-    #parser.add_argument('--ra',type=float,required=True,
-    #                    help='Right Ascension of target position [deg]')
-    #parser.add_argument('--dec',type=float,required=True,
-    #                    help='Declination of target position [deg]')
-    #parser.add_argument('--radius',type=float,default=1.0,
-    #                    help='Radius around target position [deg]')
-    #parser.add_argument('--gmax',type=float,default=23.5,
-    #                    help='Maximum g-band magnitude [mag]')
-    #args = parser.parse_args()
-    # data = query(args.profile, args.ra, args.dec, args.radius, args.gmax)
-
-    # Get an instance of the TAP service
-    from lsst.rsp import get_tap_service
-    service = get_tap_service()
-    assert service is not None
-    # assert service.baseurl == "https://data.lsst.cloud/api/tap"
-
-    # Define our reference position on the sky and cone radius in arcseconds
-    # to use in all following examples
-    coord = SkyCoord(ra=62.0*u.degree, dec=-37.0*u.degree, frame='icrs')
-    radius = 0.1 * u.deg
-
-    query = f"""
-        SELECT
-            ra, dec, mag_g, mag_r, mag_i,
-            magerr_g, magerr_r, magerr_i,
-            tract, patch, extendedness, good, clean
-        FROM dp01_dc2_catalogs.object
-        WHERE CONTAINS(POINT('ICRS', ra, dec),CIRCLE('ICRS', {str(coord.ra.value)}, {str(coord.dec.value)}, {str(radius.value)})) = 1
+    Returns
+    -------
+    df: DataFrame
+        Data from Rubin TAP
     """
 
-    # For more detailed analysis of results, converting
-    # to a pandas dataframe is often very useful
-    results = service.search(query).to_table().to_pandas()
-    # job = service.submit_job(query)
-    # job.wait(phases=['COMPLETED', 'ERROR'])
-    # results = job.fetch_result()
+    # Define our reference position on the sky and E(B-V) at that position using SFD reddening maps
+    coord = SkyCoord(ra=ra*u.degree, dec=dec*u.degree, frame='icrs')
+    E_BV = sfd(coord)
+    radius = radius * u.deg
 
-    # Quality selection and star--galaxy separation adapted from
-    # https://github.com/LSSTDESC/DC2-analysis/blob/master/tutorials/object_pandas_stellar_locus.ipynb
-
-    snr_threshold = 25
-    mag_err_threshold = 1/snr_threshold
-    good_snr = (results['magerr_g'] < mag_err_threshold) & (results['magerr_r'] < mag_err_threshold)
-
-    bright_snr_threshold = 100
-    mag_err_threshold = 1/bright_snr_threshold
-    bright_snr = (results['magerr_g'] < mag_err_threshold) & (results['magerr_r'] < mag_err_threshold)
-
-    safe_max_extended = 1.0
-    star_selection = (results['extendedness'] < safe_max_extended)
-    galaxy_selection = (results['extendedness'] >= safe_max_extended)
-
-    stars = results[good_snr & star_selection]
-    bright_stars = results[bright_snr & star_selection]
-    galaxies = results[good_snr & galaxy_selection]
-
-    print("%d stars (SNR > %.0f)" % (len(stars), snr_threshold))
-    print("%d bright stars (SNR > %.0f)" % (len(bright_stars), bright_snr_threshold))
-    print("%d galaxies (SNR > %.0f)" % (len(galaxies), snr_threshold))
- 
-    import pdb;pdb.set_trace()
+    A_g = R_g*E_BV
+    A_r = R_r*E_BV
+    A_i = R_i*E_BV
+    
+    query = f"""
+        SELECT
+            coord_ra AS ra, coord_dec AS dec,
+            scisql_nanojanskyToAbMag(g_cModelFlux) AS mag_g,
+            scisql_nanojanskyToAbMag(r_cModelFlux) AS mag_r,
+            scisql_nanojanskyToAbMagSigma(g_cModelFlux, g_cModelFluxErr) AS magerr_g, 
+            scisql_nanojanskyToAbMagSigma(r_cModelFlux, r_cModelFluxErr) AS magerr_r,
+            scisql_nanojanskyToAbMag(g_cModelFlux) - {A_g} AS mag_corrected_g,
+            scisql_nanojanskyToAbMag(r_cModelFlux) - {A_r} AS mag_corrected_r,
+            g_extendedness AS extended_class
+        FROM dp02_dc2_catalogs.Object as obj
+        JOIN dp02_dc2_catalogs.MatchesTruth as truth
+        ON truth.match_objectId = obj.objectId
+        WHERE CONTAINS(POINT('ICRS', coord_ra, coord_dec), CIRCLE('ICRS', {coord.ra.value}, {coord.dec.value}, {radius.value})) = 1
+        AND truth.match_objectId >= 0 
+        AND truth.match_candidate = 1
+        AND truth.truth_type = 2
+    """
+    df = service.search(query).to_table().to_pandas()
+    df['MC_SOURCE_ID'] = 0
+    
+    return df
