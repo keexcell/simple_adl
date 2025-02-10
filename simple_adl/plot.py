@@ -65,7 +65,7 @@ def plot_cmd(data, axs):
     return
 
 
-def plot_cmd_sep(rdata, sdata, axs, show_iso=False, iso_selection=None, fname=None, save=False):
+def plot_cmd_sep(rdata, sdata, axs, cbar=True, show_iso=False, iso_selection=None, fname=None, save=False):
     """ Plots a color magnitude diagram with simulated satellite objects highlighted.
 
     Inputs:
@@ -90,16 +90,18 @@ def plot_cmd_sep(rdata, sdata, axs, show_iso=False, iso_selection=None, fname=No
     ylims = [16, 27]
     axs.set_xlim(xlims)
     axs.set_ylim(ylims)
-    
-    axs.set_ylabel('$g$', fontsize=18)
-    axs.set_xlabel('$g-r$', fontsize=18)
+    axs.locator_params(axis='x', nbins=4)
+    axs.set_ylabel('$g$', fontsize=22)
+    axs.set_xlabel('$g-r$', fontsize=22)
     
     n, x, y, p = axs.hist2d(x, y, cmap='Greys', bins=[np.linspace(-0.5, 1, 50), np.linspace(16, 27, 50)], label='DC2 object', norm=LogNorm(vmax=1000), rasterized=True)
-    plt.colorbar(p, label='Number of objects')
+    if cbar: 
+        cbar = plt.colorbar(p, label='Number of objects')
+        cbar.ax.tick_params(labelsize=15)
     
     y = sdata['mag_g']  
     x = sdata['mag_g'] - sdata['mag_r']
-    axs.plot(x, y, 'o', color='red', markersize=5, alpha=1, label='satellite star', markeredgecolor='white', mew=0.5)
+    axs.plot(x, y, 'o', color='red', markersize=8, alpha=1, label='satellite star', markeredgecolor='white', mew=0.5)
 
     if show_iso and iso_selection is not None:
         _, mag_centers, iso_upper, iso_lower = iso_selection  
@@ -122,9 +124,9 @@ def plot_cmd_sep(rdata, sdata, axs, show_iso=False, iso_selection=None, fname=No
     if save and fname is not None:
         plt.savefig(fname)
     
-    plt.show()
+    # plt.show()
     
-    return
+    return p
 
 def plot_cmd_sep_iso(data, iso_selection, axs, fname=None, save=False):
     """ Plots a color magnitude diagram, highlighting objects that pass isochrone selection.
