@@ -182,7 +182,7 @@ def get_sim_batch(pop_file=None, sim_id=None):
     return sims_batch
 
 
-def clean_sim_population_data(sim_population):
+def clean_sim_pop(sim_population):
     sim_population  = sim_population.byteswap().newbyteorder()    # resetting byte order for compatibility
     sim_population = sim_population[sim_population['FRACDET_CORE'] == 1]
     sim_population = sim_population[sim_population['FRACDET_WIDE'] == 1]
@@ -211,6 +211,33 @@ def mask_region_sims(sim_data, position, radius):
     catalogmsk = d2d < radius*u.deg
     sim_data = sim_data[catalogmsk]
     return sim_data
+
+def sim_pop(file):
+    """ Load sim population and their positions
+    """
+    sim_population = fits.read(file)
+    sim_positions = np.unique(sim_population[['RA', 'DEC']])
+    sim_population = clean_sim_pop(sim_population)
+    return sim_population, sim_positions
+
+def load_field(sim_population, position, service=service, verbose=True):
+    """ Load DC2 data and sim data at given position
+    """
+    sim_population_at_position = sim_population[sim_population[['RA', 'DEC']] == position]
+    sim_population_at_position = pd.DataFrame(sim_population_at_position)
+    
+    if len(t['MC_SOURCE_ID'].values) == 0:
+        if verbose: print(f'No sims at {position}')
+        return
+        
+    if verbose: 
+        print(f'Satellites at {position} :\n {sim_population_at_position['MC_SOURCE_ID'].values}')
+        print(f'Querying region {position}')
+        
+    radius = 2      # degrees
+    real_data = query(service, position[0], position[1], radius)
+    
+    return real_data, sim_population_at_position
 
 
 def load_and_merge(sim_id, truth_matching=True):
