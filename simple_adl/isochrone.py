@@ -17,7 +17,7 @@ import simple_adl
 #------------------------------------------------------------------------------
 
 class Isochrone():
-    def __init__(self, age=12.0, metallicity=0.00010, distance_modulus=16.0, survey='des', band_1='g', band_2='r', filename=os.path.join(os.path.dirname(simple_adl.__file__),'isochrones/iso_a12.0_z0.00010.dat')):
+    def __init__(self, age=12.0, metallicity=0.00010, distance_modulus=16.0, survey='des', band_1='g', band_2='r'):
         self.age = age
         self.metallicity = metallicity
         self.distance_modulus = distance_modulus
@@ -28,7 +28,10 @@ class Isochrone():
         #self.imf_type = Chabrier2003
         self.hb_stage = 4
         self.hb_spread = 0.1
-        self.filename = filename
+        if survey == 'des':
+            self.filename = os.path.join(os.path.dirname(simple_adl.__file__),'isochrones/iso_a12.0_z0.00010.dat')
+        elif survey == 'lsst':
+            self.filename = os.path.join(os.path.dirname(simple_adl.__file__),'isochrones/marigo2017/iso_a12.0_z0.00010.dat')
         self._parse(self.filename)
 
     columns = dict(

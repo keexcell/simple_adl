@@ -14,8 +14,8 @@ catalog:
 isochrone:
   age: 12
   metallicity: 0.0001
-  name: Bressan2012
-  survey: des
+  name: Marigo2017
+  survey: lsst
 output:
   candidate_list: candidate_list.csv
   log_dir: log_dir
