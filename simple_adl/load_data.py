@@ -163,10 +163,22 @@ def get_sim_file(sim_dir, sim_id = None, truth_matching=True):
             return(file)
 
 
-def get_sim_batch(sim_id):
-    file_start = str((sim_id//100)*100 + 1).zfill(7)
-    file_end = str((sim_id//100)*100 + 100).zfill(7)
-    sims_batch = file_start + '-' + file_end
+def get_sim_batch(pop_file=None, sim_id=None):
+    """ Gets the batch number for the sims
+
+    Given a population file it will extract the batch directly from the file name.
+    
+    Given a sim id it will find the corresponding sim population file batch 
+    e.g sim_id 27355 has batch 0027301-0027400
+    """
+    if sim_id is not None and pop_file is None:
+        file_start = str((sim_id//100)*100 + 1).zfill(7)
+        file_end = str((sim_id//100)*100 + 100).zfill(7)
+        sims_batch = file_start + '-' + file_end
+    elif pop_file is not None and sim_id is None:
+        start = pop_file.find('0')
+        end = start + 15
+        sims_batch = pop_file[start:end]
     return sims_batch
 
 
