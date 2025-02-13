@@ -65,7 +65,9 @@ def cut_isochrone_path(g, r, g_err, r_err, isochrone, mag_max, radius=0.1, retur
 def write_output(results_dir, nside, pix_nside_select, best_ra_peak, best_dec_peak, best_r_peak, best_distance_modulus, 
                 n_obs_peak, n_obs_half_peak, n_model_peak, 
                 best_sig_peak, mc_source_id, mode, outfile):
-    
+    if os.path.exists(f'{results_dir}/{outfile}'):
+        print(f'Files {outfile} already processed')
+        return
     #saving only the best
     data = np.array([best_sig_peak, best_ra_peak, best_dec_peak, best_distance_modulus, best_r_peak, n_obs_peak, n_obs_half_peak, n_model_peak, mc_source_id]) 
     f = open(os.path.join(results_dir,outfile), 'ab')
@@ -74,6 +76,7 @@ def write_output(results_dir, nside, pix_nside_select, best_ra_peak, best_dec_pe
     else:
          np.savetxt(f, [data], fmt="%.2f", delimiter=',')
     f.close()
+    return
 
 def search_by_distance(survey, region, distance_modulus, iso_sel, extension=None):
     """
@@ -127,7 +130,7 @@ def search_by_distance(survey, region, distance_modulus, iso_sel, extension=None
 
     return ra_peak_array, dec_peak_array, r_peak_array, sig_peak_array, distance_modulus_array, n_obs_peak_array, n_obs_half_peak_array, n_model_peak_array
 
-def search(mcid, position, survey, merged_data, sims_at_pos, iso_survey='lsst', save=False, verbose=True):
+def search(mcid, position, survey, merged_data, sims_at_pos, iso_survey='lsst', outfile=None, save=False, verbose=True):
     """
     """
     ### the iso_survey argument is because I was using the wrong isochrone for so long, now it is needed for testing
