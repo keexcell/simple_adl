@@ -24,6 +24,7 @@ service = get_tap_service()
 assert service is not None
 assert service.baseurl == "https://data.lsst.cloud/api/tap"
 
+radius = 2.     # degrees
 
 def get_catalog_file(catalog_dir, mc_source_id):
     """
@@ -220,7 +221,7 @@ def sim_pop(file):
     sim_population = clean_sim_pop(sim_population)
     return sim_population, sim_positions
 
-def load_field(sim_population, position, service=service, verbose=True):
+def load_field(sim_population, position, service=service, truth_match=True, verbose=True):
     """ Load DC2 data and sim data at given position
     """
     sim_population_at_position = sim_population[sim_population[['RA', 'DEC']] == position]
@@ -234,12 +235,32 @@ def load_field(sim_population, position, service=service, verbose=True):
         print(f'Satellites at {position} :\n {sim_population_at_position['MC_SOURCE_ID'].values}')
         print(f'Querying region {position}')
         
-    radius = 2      # degrees
-    real_data = query(service, position[0], position[1], radius)
+    if truth_match:
+        real_data = query_truth(service, position[0], position[1], radius)
+    else:
+        real_data = query(service, position[0], position[1], radius)
     
     return real_data, sim_population_at_position
 
 
+def load_merge(mcid, real_data, position, survey, truth_match=True, verbose=True):
+    if truth_match:
+        sim_dir = '/project/shared/data/satsim/lsst_dc2_v7'
+    else:
+        sim_dir = '/project/shared/data/satsim/lsst_dc2_v6'
+    sim_data = load_sim_data(sim_dir, mcid)
+    if sim_data is not None:
+        sim_data = sim_data.byteswap().newbyteorder()   # resetting byte order for compatibility
+        sim_data = pd.DataFrame(sim_data)
+        sim_data = mask_region_sims(sim_data, position, radius)
+        if sim_data.empty:
+            if verbose:
+                print(f'No sim data to inject into region at ({position[0]},{position[1]}) after applying mask')
+            return None
+        merged_data = get_merged_data(real_data, sim_data, survey)
+    return merged_data, sim_data
+
+    
 def load_and_merge(sim_id, truth_matching=True):
     """ Create merged dataframe and display CMDs using true information or observational information
 
