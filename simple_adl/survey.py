@@ -146,17 +146,9 @@ class Region():
         """
         Load info for injecting satellite sims
         """
-        # self.population_file = population_file
-        # self.catalog_file = catalog_file
-        
         data_array = []
         cat_file = get_catalog_file(self.survey.sim_dir, mc_source_id)
         cat_data = fits.read(cat_file, ext=1)
-        # pix = hp.ang2pix(nside,cat_data[basis_1], cat_data[basis_2], lonlat=True)
-        # pix_data = cat_data[np.in1d(pix, pix_nside_neighbors)]
-        # data_array.append(pix_data)
-        # data = np.concatenate(data_array)
-        
         return cat_data
     
     def inject_satellite_sim(self, mc_source_id):
@@ -165,8 +157,6 @@ class Region():
         """
         
         sim_data = self.load_satellite_sim(mc_source_id)
-        # self.sim_data = sim_data
-        # self.combined_data = np.concatenate([self.data, self.sim_data])
         real_data = self.load_data(stars=True, galaxies=False)
         sim_data = self.load_satellite_sim(mc_source_id)
         merged_data = real_data[real_data.columns[:-1]].append(pd.DataFrame(sim_data[real_data.columns[:-1]]))  # pd.Dataframe
@@ -192,19 +182,14 @@ class Region():
     
         h_g = scipy.ndimage.filters.gaussian_filter(h, smoothing / delta_x)
     
-        #cut_goodcoverage = (data['NEPOCHS_G'][cut_magnitude_threshold] >= 2) & (data['NEPOCHS_R'][cut_magnitude_threshold] >= 2)
-        # expect NEPOCHS to be good in DES data
-    
         delta_x_coverage = 0.1
         area_coverage = (delta_x_coverage)**2
         bins_coverage = np.arange(-5., 5. + 1.e-10, delta_x_coverage)
         h_coverage = np.histogram2d(x, y, bins=[bins_coverage, bins_coverage])[0]
-        #h_goodcoverage = np.histogram2d(x[cut_goodcoverage], y[cut_goodcoverage], bins=[bins_coverage, bins_coverage])[0]
         h_goodcoverage = np.histogram2d(x, y, bins=[bins_coverage, bins_coverage])[0]
     
         n_goodcoverage = h_coverage[h_goodcoverage > 0].flatten()
     
-        #characteristic_density = np.mean(n_goodcoverage) / area_coverage # per square degree
         characteristic_density = np.median(n_goodcoverage) / area_coverage # per square degree
         if verbose: print('Characteristic density = {:0.1f} deg^-2'.format(characteristic_density))
     
@@ -239,8 +224,6 @@ class Region():
         """
         Compute the local characteristic density of a region
         """
-    
-        #characteristic_density = self.characteristic_density(iso_sel)
         characteristic_density = self.density
     
         x, y = self.proj.sphereToImage(self.data[self.survey.catalog['basis_1']][iso_sel], self.data[self.survey.catalog['basis_2']][iso_sel]) # Trimmed magnitude range for hotspot finding
@@ -345,23 +328,19 @@ class Region():
             # This is reducing the contrast against the background through the arbitrary measurement 'factor'
             # until there are fewer than 10 disconnected peaks
             h_region, n_region = scipy.ndimage.measurements.label((h_g * cutcut) > (area * characteristic_density * factor))
-            #print 'factor', factor, n_region, n_region < 10
             if n_region < 10:
                 threshold_density = area * characteristic_density * factor
                 break
     
         h_region, n_region = scipy.ndimage.measurements.label((h_g * cutcut) > threshold_density)
-        #h_region = np.ma.array(h_region, mask=(h_region < 1))
     
         x_peak_array = []
         y_peak_array = []
         angsep_peak_array = []
     
         for index in range(1, n_region + 1): # loop over peaks
-            #index_peak = np.argmax(h_g * (h_region == index))
             index_peak = np.ravel_multi_index(scipy.ndimage.maximum_position(input=h_g, labels=h_region, index=index), h_g.shape)
             x_peak, y_peak = xx.flatten()[index_peak], yy.flatten()[index_peak]
-            #print index, np.max(h_g * (h_region == index))
 
             # SM: Could these numbers be useful?
             #index_max = scipy.ndimage.maximum(input=h_g, labels=h_region, index=index)
@@ -403,26 +382,15 @@ class Region():
         
         size_array_zero = np.concatenate([[0.], size_array])
         area_array = np.pi * (size_array_zero[1:]**2 - size_array_zero[0:-1]**2)
-    
-        #n_obs_array = np.zeros(len(size_array))
-        #n_model_array = np.zeros(len(size_array))
-        #for ii in range(0, len(size_array)):
-        #    n_obs = np.sum(angsep_peak < size_array[ii])
-        #    n_model = characteristic_density_local * (np.pi * size_array[ii]**2)
-        #    sig_array[ii] = np.clip(scipy.stats.norm.isf(scipy.stats.poisson.sf(n_obs, n_model)), 0., 37.5) # Clip at 37.5
-        #    n_obs_array[ii] = n_obs
-        #    n_model_array[ii] = n_model
+
         n_obs_array = np.array([np.sum(angsep_peak < size) for size in size_array])
         n_model_array = np.array([characteristic_density_local * (np.pi * size**2) for size in size_array])
 
         sig_array = np.array([np.clip(scipy.stats.norm.isf(scipy.stats.poisson.sf(n_obs, n_model)), 0., 37.5) for (n_obs,n_model) in zip(n_obs_array,n_model_array)])
     
         ra_peak, dec_peak = self.proj.imageToSphere(x_peak, y_peak)
-    
         index_peak = np.argmax(sig_array)
         r_peak = size_array[index_peak]
-        #if np.max(sig_array) >= 37.5:
-        #    r_peak = 0.5
         n_obs_peak = n_obs_array[index_peak]
         n_model_peak = n_model_array[index_peak]
         n_obs_half_peak = np.sum(angsep_peak < (0.5 * r_peak))

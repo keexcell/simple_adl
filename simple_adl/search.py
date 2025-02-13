@@ -64,7 +64,7 @@ def cut_isochrone_path(g, r, g_err, r_err, isochrone, mag_max, radius=0.1, retur
 def write_output(results_dir, nside, pix_nside_select, best_ra_peak, best_dec_peak, best_r_peak, best_distance_modulus, 
                 n_obs_peak, n_obs_half_peak, n_model_peak, 
                 best_sig_peak, mc_source_id, mode, outfile):
-    if os.path.exists(f'{results_dir}/{outfile}'):
+    if os.path.exists(f'{results_dir}/{outfile}') and 'sim_pop' in outfile:    # better that you delete a sim pop results file manually
         print(f'Files {outfile} already processed')
         return
     #saving only the best
@@ -138,9 +138,22 @@ def search(mcid, position, survey, merged_data, sims_at_pos, iso_survey='lsst', 
     position : tuple(float, float)
         ra [deg] and dec [deg] of the position on sky
     survey : string
-        
+        survey name
+    merged_data : pd.DataFrame
+        combined dc2 and simulated satellite data
+    sims_at_pos : pd.DataFrame
+        simulated satellites at the given position
+    iso_survey : string
+        survey isochrone to use, either 'lsst' or 'des'
+    outfile : string
+        name of the output file
+
+    Returns
+    -------
+    iso_selection : tuple(list[bool], np.array[float], np.array[float], np.array[float])
+        isochrone information. The first element is the actual isochrone cut used in the search, the rest are used for plotting. The second is the array of magnitude bin centers, the third is the upper bounds of the color, the fourth is the lower bounds of the color. 
     """
-    ### the iso_survey argument is because I was using the wrong isochrone for so long, now it is needed for testing
+    ### KB the iso_survey argument is because I was using the wrong isochrone for so long, now it is needed for testing
     
     if verbose: print('Searching for MC_SOURCE_ID ', mcid)
     ra = position[0]
@@ -153,8 +166,8 @@ def search(mcid, position, survey, merged_data, sims_at_pos, iso_survey='lsst', 
     iso_search = simple_adl.isochrone.Isochrone(survey=iso_survey, # survey.isochrone['survey']
                                            band_1=survey.band_1.lower(),
                                            band_2=survey.band_2.lower(),
-                                           age=12.0, #survey.isochrone['age'],
-                                           metallicity=0.00010, #survey.isochrone['metallicity'],
+                                           age=survey.isochrone['age'], # 12 Gyr
+                                           metallicity=survey.isochrone['metallicity'],  # 0.00010
                                            distance_modulus=distance_modulus)
 
     iso_selection = cut_isochrone_path(region.data[survey.mag_dered_1], 

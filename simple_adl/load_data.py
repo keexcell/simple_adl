@@ -30,15 +30,15 @@ def get_catalog_file(catalog_dir, mc_source_id):
     """
     Parameters
     ----------
-        catalog_dir: str
-            String corresponding to directory containing the stellar catalog infiles
-        mc_source_id: int
-            Integer corresponding to the target MC_SOURCE_ID value
+    catalog_dir: str
+        String corresponding to directory containing the stellar catalog infiles
+    mc_source_id: int
+        Integer corresponding to the target MC_SOURCE_ID value
 
     Returns
     -------
-        catalog_infile: str
-            String corresponding to filename of stellar catalog containing mc_source_id
+    catalog_infile: str
+        String corresponding to filename of stellar catalog containing mc_source_id
     """
     catalog_infiles = sorted(glob.glob(catalog_dir + '/*catalog*.fits'))
     mc_source_id_array = []
@@ -86,15 +86,15 @@ def load_simdf(catalog_dir: str, results_dir: str) -> pd.DataFrame:
     
     Parameters
     ----------
-        catalog_dir: str
-            Directory with the sim catalogs
-        results_dir: str
-            Directory with sim search results 
+    catalog_dir: str
+        Directory with the sim catalogs
+    results_dir: str
+        Directory with sim search results 
         
     Returns
     -------
-        sims: DataFrame
-            Sims dataframe
+    sims: DataFrame
+        Sims dataframe
     """
     results_df = combine_sim_results(results_dir)
     pop_df = combine_sim_pop(catalog_dir, results_dir)
@@ -110,7 +110,7 @@ def load_simdf(catalog_dir: str, results_dir: str) -> pd.DataFrame:
 
 
 def combine_sim_results(results_dir: str) -> pd.DataFrame:
-    """
+    """ Take all the sim results dataframes from the results directory and make them one big dataframe.
     """
     files = glob.glob(os.path.join(results_dir, '*.csv'))
     first_file = files[0]
@@ -125,7 +125,7 @@ def combine_sim_results(results_dir: str) -> pd.DataFrame:
 
 
 def combine_sim_pop(catalog_dir: str, results_dir: str) -> pd.DataFrame:
-    """
+    """ Take all the sim catalog population files and combine them into one big sim population dataframe.
     """
     population_file = glob.glob(os.path.join(catalog_dir, '*population*'))
     sim_pop = fits.read(population_file[0])
@@ -146,6 +146,9 @@ def combine_sim_pop(catalog_dir: str, results_dir: str) -> pd.DataFrame:
 
 
 def get_sim_file(sim_dir, sim_id = None, truth_matching=True):
+    """ Given the sims directory and a sim_id return the corresponding sim catalog file.
+    This needs a little work.
+    """
     if truth_matching: 
         if sim_id is not None:
             sims_batch = get_sim_batch(sim_id)
@@ -184,6 +187,8 @@ def get_sim_batch(pop_file=None, sim_id=None):
 
 
 def clean_sim_pop(sim_population):
+    """ Remove sims on the edge of the DC2 footprint to prevent detection anomalies.
+    """
     sim_population  = sim_population.byteswap().newbyteorder()    # resetting byte order for compatibility
     sim_population = sim_population[sim_population['FRACDET_CORE'] == 1]
     sim_population = sim_population[sim_population['FRACDET_WIDE'] == 1]
@@ -192,6 +197,8 @@ def clean_sim_pop(sim_population):
     
 
 def get_merged_data(real_data, sim_data, survey):
+    """ Merge the sim data and DC2 data into one dataframe.
+    """
     # merging the sims and dc2 data
     frames = [real_data[real_data.columns[:-1]], sim_data[real_data.columns[:-1]]]
     merged_data = pd.concat(frames)  # pd.Dataframe
@@ -204,7 +211,8 @@ def get_merged_data(real_data, sim_data, survey):
 
     
 def mask_region_sims(sim_data, position, radius):
-    # mask to ensure we only use sims within the queried data's footprint
+    """ Mask to ensure we only use sims within the queried data's footprint
+    """
     
     c2 = SkyCoord(sim_data['ra'], sim_data['dec'], unit='deg', frame='icrs')
     center = SkyCoord(position[0], position[1], unit='deg')
@@ -267,6 +275,8 @@ def load_merge(mcid, real_data, position, survey, truth_match=True, verbose=True
     
 def load_and_merge(sim_id, truth_matching=True):
     """ Create merged dataframe and display CMDs using true information or observational information
+
+    This is mainly used for the plot_cmd notebook but is now broken.
 
     Parameters
     ---------z

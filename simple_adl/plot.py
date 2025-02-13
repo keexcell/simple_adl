@@ -128,40 +128,6 @@ def plot_cmd_sep(rdata, sdata, axs, cbar=True, show_iso=False, iso_selection=Non
     
     return p
 
-def plot_cmd_sep_iso(data, iso_selection, axs, fname=None, save=False):
-    """ Plots a color magnitude diagram, highlighting objects that pass isochrone selection.
-
-    Inputs:
-        data (pd.DataFrame): photometry data
-        iso_selection: isochrone to be applied to the data
-        axs: pyplot axes object
-    """
-    source = data[iso_selection]
-    data = data[~iso_selection]
-    y = data['mag_g']  
-    x = data['mag_g'] - data['mag_r']
-    
-    xlims = [-0.5, 1]
-    ylims = [16,27]
-    axs.set_xlim(xlims); 
-    axs.set_ylim(ylims); 
-    
-    axs.set_ylabel('g')
-    axs.set_xlabel('g-r')
-    
-    n, x, y, p = axs.hist2d(x, y, cmap='Greys', bins=[np.linspace(-0.5, 1, 50), np.linspace(16, 27, 50)], label='DC2 object', norm=LogNorm(vmax=1000), rasterized=True)
-    plt.colorbar(p, label='Number of objects')
-    y = source['mag_g']  
-    x = source['mag_g'] - source['mag_r']
-    axs.plot(x, y, 'o', color='red',  markersize=3, alpha=1, label='isochrone object', markeredgecolor='white', mew=0.5, rasterized=True)
-    axs.invert_yaxis()
-    if save:
-        plt.savefig(fname)
-        
-    plt.show()
-    
-    return
-
 
 def draw_mu_vs_ng24(mu,ng24,color,data=None,**kwargs):
     """ Draw one surface brightness (mu) vs the number of stars with g < 24 (N_g24)

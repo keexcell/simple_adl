@@ -9,11 +9,6 @@ from astropy.coordinates import SkyCoord
 from dustmaps.sfd import SFDQuery
 from dustmaps.config import config
 
-# Redenning coefficients
-# R_g = 3.185
-# R_r = 2.140
-# R_i = 1.571   # I can't find any reference for these old values 
-
 R_g = 3.64
 R_r = 2.70
 R_i = 2.06
@@ -39,12 +34,7 @@ def query(service, ra, dec, radius=1.0, gmax=23.5):
     -------
     good_results: DataFrame
     """
-
-    # Redenning coefficients
-    # R_g = 3.185
-    # R_r = 2.140
-    # R_i = 1.571   # I can't find any reference for these old values 
-
+\
     R_g = 3.64
     R_r = 2.70
     R_i = 2.06
