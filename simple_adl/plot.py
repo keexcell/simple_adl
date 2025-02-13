@@ -87,14 +87,14 @@ def plot_cmd_sep(rdata, sdata, axs, cbar=True, show_iso=False, iso_selection=Non
     x = rdata['mag_g'] - rdata['mag_r']
     
     xlims = [-0.5, 1]
-    ylims = [16, 27]
+    ylims = [17, 27]
     axs.set_xlim(xlims)
     axs.set_ylim(ylims)
     axs.locator_params(axis='x', nbins=4)
     axs.set_ylabel('$g$', fontsize=22)
     axs.set_xlabel('$g-r$', fontsize=22)
     
-    n, x, y, p = axs.hist2d(x, y, cmap='Greys', bins=[np.linspace(-0.5, 1, 50), np.linspace(16, 27, 50)], label='DC2 object', norm=LogNorm(vmax=1000), rasterized=True)
+    n, x, y, p = axs.hist2d(x, y, cmap='Greys', bins=[np.linspace(-0.5, 1, 50), np.linspace(17, 27, 50)], label='DC2 object', norm=LogNorm(vmax=1000), rasterized=True)
     if cbar: 
         cbar = plt.colorbar(p, label='Number of objects')
         cbar.ax.tick_params(labelsize=15)
@@ -244,7 +244,7 @@ def plot_mu_vs_ng24(sims,data=None):
     return axs
 
 
-def plots(position, real_data, sim_data, merged_data, mcid, cmap):
+def plots(position, real_data, sim_data, merged_data, mcid, iso_selection, cmap):
     """ Plots the objects from DC2 data, the sim satellite data, and DC2+sim data
     on separate plots. Also plots a color magnitude diagram.
 
@@ -284,5 +284,8 @@ def plots(position, real_data, sim_data, merged_data, mcid, cmap):
     axs[2].set_xlabel(r'$x$')
     axs[2].set_ylabel(r'$y$')
 
-    plot_cmd(merged_data, axs[3])
+    # plot_cmd(merged_data, axs[3])
+    p = plot_cmd_sep(real_data, sim_data, axs[3], cbar=False, show_iso=True, iso_selection=iso_selection, fname=None, save=False)
+    cbar = plt.colorbar(p, ax=axs[3])
+    cbar.set_label('Number of objects')
     plt.show()

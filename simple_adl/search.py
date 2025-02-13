@@ -30,11 +30,10 @@ def cut_isochrone_path(g, r, g_err, r_err, isochrone, mag_max, radius=0.1, retur
         index_transition = len(isochrone.stage)
     else:
         # Other cases
-        index_transition = np.nonzero(isochrone.stage >= isochrone.hb_stage)[0][0] + 1    
+        index_transition = np.nonzero(isochrone.stage >= isochrone.hb_stage)[0][0] # + 1 
 
     mag_1_rgb = isochrone.mag_1[0: index_transition] + isochrone.distance_modulus
     mag_2_rgb = isochrone.mag_2[0: index_transition] + isochrone.distance_modulus
-    
     mag_1_rgb = mag_1_rgb[::-1]
     mag_2_rgb = mag_2_rgb[::-1]
 
@@ -99,22 +98,21 @@ def search_by_distance(survey, region, distance_modulus, iso_sel, extension=None
     n_obs_half_peak_array = []
     n_model_peak_array = []
 
-    region.density = region.characteristic_density(iso_sel)
+    region.density = region.characteristic_density(iso_sel, verbose=verbose)
     x_peak_array, y_peak_array, angsep_peak_array = region.find_peaks(iso_sel)
-    if verbose:
-        for x_peak, y_peak, angsep_peak in zip(x_peak_array, y_peak_array, angsep_peak_array):
-            # Aperture fitting
-            print('Fitting aperture to hotspot...')
-            ra_peaks, dec_peaks, r_peaks, sig_peaks, n_obs_peaks, n_obs_half_peaks, n_model_peaks, density = region.fit_aperture(iso_sel, x_peak, y_peak, angsep_peak, extension)
-            
-            ra_peak_array.append(ra_peaks)
-            dec_peak_array.append(dec_peaks)
-            r_peak_array.append(r_peaks)
-            sig_peak_array.append(sig_peaks)
-            distance_modulus_array.append(distance_modulus*np.ones(len(ra_peaks)))
-            n_obs_peak_array.append(n_obs_peaks)
-            n_obs_half_peak_array.append(n_obs_half_peaks)
-            n_model_peak_array.append(n_model_peaks)
+    for x_peak, y_peak, angsep_peak in zip(x_peak_array, y_peak_array, angsep_peak_array):
+        # Aperture fitting
+        if verbose: print('Fitting aperture to hotspot...')
+        ra_peaks, dec_peaks, r_peaks, sig_peaks, n_obs_peaks, n_obs_half_peaks, n_model_peaks, density = region.fit_aperture(iso_sel, x_peak, y_peak, angsep_peak, verbose=verbose, extension=extension)
+        
+        ra_peak_array.append(ra_peaks)
+        dec_peak_array.append(dec_peaks)
+        r_peak_array.append(r_peaks)
+        sig_peak_array.append(sig_peaks)
+        distance_modulus_array.append(distance_modulus*np.ones(len(ra_peaks)))
+        n_obs_peak_array.append(n_obs_peaks)
+        n_obs_half_peak_array.append(n_obs_half_peaks)
+        n_model_peak_array.append(n_model_peaks)
         
     try:
         ra_peak_array = np.concatenate(ra_peak_array)
@@ -165,8 +163,9 @@ def search(mcid, position, survey, merged_data, sims_at_pos, iso_survey='lsst', 
                                           region.data[survey.mag_err_2],
                                           iso_search,
                                           survey.catalog['mag_max'],
-                                          radius=0.1)
-    results = search_by_distance(survey, region, distance_modulus, iso_selection, verbose=verbose) 
+                                          radius=0.1,
+                                          return_all=True)
+    results = search_by_distance(survey, region, distance_modulus, iso_selection[0], verbose=verbose) 
     ra_peak_array, dec_peak_array, r_peak_array, sig_peak_array, distance_modulus_array, n_obs_peak_array, n_obs_half_peak_array, n_model_peak_array = np.asarray(results)
     if len(sig_peak_array) == 0:
         return
@@ -244,7 +243,7 @@ def search(mcid, position, survey, merged_data, sims_at_pos, iso_survey='lsst', 
         print(f'--> {mcid} FOUND')
         print('---------------------------------')
 
-    if save:
+    if save and outfile is not None:
         try:
             if (len(sig_peak_array) > 0):
                 write_output(survey.output['results_dir'], survey.catalog['nside'], region.pix_center, best_ra_peak, best_dec_peak,
@@ -261,4 +260,4 @@ def search(mcid, position, survey, merged_data, sims_at_pos, iso_survey='lsst', 
         except Exception as e: 
             print(e)
             print('Data missing, cannot write to file')
-    return
+    return iso_selection

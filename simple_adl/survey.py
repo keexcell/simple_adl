@@ -173,7 +173,7 @@ class Region():
         
         return merged_data
 
-    def characteristic_density(self, iso_sel):
+    def characteristic_density(self, iso_sel, verbose=True):
         """
         Compute the characteristic density of a region
         Convolve the field and find overdensity peaks
@@ -206,7 +206,7 @@ class Region():
     
         #characteristic_density = np.mean(n_goodcoverage) / area_coverage # per square degree
         characteristic_density = np.median(n_goodcoverage) / area_coverage # per square degree
-        print('Characteristic density = {:0.1f} deg^-2'.format(characteristic_density))
+        if verbose: print('Characteristic density = {:0.1f} deg^-2'.format(characteristic_density))
     
         # Use pixels with fracdet ~1.0 to estimate the characteristic density
         if self.fracdet is not None:
@@ -231,11 +231,11 @@ class Region():
             # Correct the characteristic density by the mean fracdet value
             characteristic_density_raw = 1. * characteristic_density
             characteristic_density /= mean_fracdet 
-            print('Characteristic density (fracdet corrected) = {:0.1f} deg^-2'.format(characteristic_density))
+            if verbose: print('Characteristic density (fracdet corrected) = {:0.1f} deg^-2'.format(characteristic_density))
     
         return(characteristic_density)
     
-    def characteristic_density_local(self, iso_sel, x_peak, y_peak, angsep_peak):
+    def characteristic_density_local(self, iso_sel, x_peak, y_peak, angsep_peak, verbose=True):
         """
         Compute the local characteristic density of a region
         """
@@ -283,18 +283,18 @@ class Region():
             print('mean_fracdet {}'.format(mean_fracdet))
             if mean_fracdet < 0.5:
                 characteristic_density_local = characteristic_density
-                print('characteristic_density_local baseline {}'.format(characteristic_density_local))
+                if verbose: print('characteristic_density_local baseline {}'.format(characteristic_density_local))
             else:
                 # Check pixels in annulus with complete coverage
                 subpix_annulus_region = np.intersect1d(subpix_region_array, subpix_annulus)
-                print('{} percent pixels with complete coverage'.format(float(len(subpix_annulus_region)) / len(subpix_annulus)))
+                if verbose: print('{} percent pixels with complete coverage'.format(float(len(subpix_annulus_region)) / len(subpix_annulus)))
                 if (float(len(subpix_annulus_region)) / len(subpix_annulus)) < 0.25:
                     characteristic_density_local = characteristic_density
-                    print('characteristic_density_local spotty {}'.format(characteristic_density_local))
+                    if verbose: print('characteristic_density_local spotty {}'.format(characteristic_density_local))
                 else:
                     characteristic_density_local = float(np.sum(np.in1d(subpix, subpix_annulus_region))) \
                                                    / (hp.nside2pixarea(nside_fracdet, degrees=True) * len(subpix_annulus_region)) # deg^-2
-                    print('characteristic_density_local cleaned up {}'.format(characteristic_density_local))
+                    if verbose: print('characteristic_density_local cleaned up {}'.format(characteristic_density_local))
         else:
             # Compute the local characteristic density
             area_field = np.pi * (0.5**2 - 0.3**2)
@@ -310,7 +310,7 @@ class Region():
                 #angsep_peak = np.sqrt((x - x_peak)**2 + (y - y_peak)**2)
                 characteristic_density_local = characteristic_density
     
-        print('Characteristic density local = {:0.1f} deg^-2 = {:0.3f} arcmin^-2'.format(characteristic_density_local, characteristic_density_local / 60.**2))
+        if verbose: print('Characteristic density local = {:0.1f} deg^-2 = {:0.3f} arcmin^-2'.format(characteristic_density_local, characteristic_density_local / 60.**2))
     
         return(characteristic_density_local)
 
@@ -378,12 +378,12 @@ class Region():
         
         return x_peak_array, y_peak_array, angsep_peak_array
     
-    def fit_aperture(self, iso_sel, x_peak, y_peak, angsep_peak, extension=None):
+    def fit_aperture(self, iso_sel, x_peak, y_peak, angsep_peak, verbose=True, extension=None):
         """
         Fit aperture by varing radius and computing the significance
         """
 
-        characteristic_density_local = self.characteristic_density_local(iso_sel, x_peak, y_peak, angsep_peak)
+        characteristic_density_local = self.characteristic_density_local(iso_sel, x_peak, y_peak, angsep_peak, verbose=verbose)
     
         ra_peak_array = []
         dec_peak_array = []
@@ -428,7 +428,7 @@ class Region():
         n_obs_half_peak = np.sum(angsep_peak < (0.5 * r_peak))
     
         # Compile results
-        print('Candidate: x_peak: {:12.3f}, y_peak: {:12.3f}, r_peak: {:12.3f}, sig: {:12.3f}, ra_peak: {:12.3f}, dec_peak: {:12.3f}'.format(x_peak, y_peak, r_peak, np.max(sig_array), ra_peak, dec_peak))
+        if verbose: print('Candidate: x_peak: {:12.3f}, y_peak: {:12.3f}, r_peak: {:12.3f}, sig: {:12.3f}, ra_peak: {:12.3f}, dec_peak: {:12.3f}'.format(x_peak, y_peak, r_peak, np.max(sig_array), ra_peak, dec_peak))
         ra_peak_array.append(ra_peak)
         dec_peak_array.append(dec_peak)
         r_peak_array.append(r_peak)
@@ -440,29 +440,3 @@ class Region():
     
         return ra_peak_array, dec_peak_array, r_peak_array, sig_peak_array, n_obs_peak_array, n_obs_half_peak_array, n_model_peak_array, characteristic_density_local
 
-    def plot_cmd(self, iso_sel):
-        """Plot a color magnitude diagram.
-
-        data: DataFrame with photometry data
-        """
-        data = self.data
-        y = data['mag_g']  
-        x = data['mag_g'] - data['mag_r']
-
-        xlims = [-1, 1.5]  #need to find better way to restrict axes
-        ylims = [16,28]
-        
-        fig, axs = plt.subplots(1,1)
-        axs.set_xlim(xlims); 
-        axs.set_ylim(ylims); 
-
-        axs.set_ylabel('$Magnitude (g)$')
-        axs.set_xlabel('$Color (g-r)$')
-
-        axs.plot(x, y, 'ko', markersize=0.3, alpha=0.3)
-        axs.invert_yaxis()
-
-
-        plt.show()
-
-        return
