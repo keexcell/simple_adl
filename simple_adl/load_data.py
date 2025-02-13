@@ -227,13 +227,14 @@ def load_field(sim_population, position, service=service, truth_match=True, verb
     sim_population_at_position = sim_population[sim_population[['RA', 'DEC']] == position]
     sim_population_at_position = pd.DataFrame(sim_population_at_position)
     
-    if len(t['MC_SOURCE_ID'].values) == 0:
+    if len(sim_population_at_position['MC_SOURCE_ID'].values) == 0:
         if verbose: print(f'No sims at {position}')
         return
         
     if verbose: 
         print(f'Satellites at {position} :\n {sim_population_at_position['MC_SOURCE_ID'].values}')
-        print(f'Querying region {position}')
+        
+    print(f'Querying region {position}')
         
     if truth_match:
         real_data = query_truth(service, position[0], position[1], radius)
@@ -258,7 +259,10 @@ def load_merge(mcid, real_data, position, survey, truth_match=True, verbose=True
                 print(f'No sim data to inject into region at ({position[0]},{position[1]}) after applying mask')
             return None
         merged_data = get_merged_data(real_data, sim_data, survey)
-    return merged_data, sim_data
+        return merged_data, sim_data
+    else:
+        return None
+    
 
     
 def load_and_merge(sim_id, truth_matching=True):

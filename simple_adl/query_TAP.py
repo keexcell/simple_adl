@@ -82,6 +82,7 @@ def query(service, ra, dec, radius=1.0, gmax=23.5):
         FROM dp02_dc2_catalogs.Object
         WHERE CONTAINS(POINT('ICRS', coord_ra, coord_dec), CIRCLE('ICRS', {coord.ra.value}, {coord.dec.value}, {radius.value})) = 1
         AND g_extendedness < {str(safe_max_extended)}
+        AND detect_isPrimary = 1
     """
     
     job = service.submit_job(query)
@@ -135,13 +136,14 @@ def query_truth(service, ra, dec, radius=1):
             scisql_nanojanskyToAbMag(g_cModelFlux) - {A_g} AS mag_corrected_g,
             scisql_nanojanskyToAbMag(r_cModelFlux) - {A_r} AS mag_corrected_r,
             g_extendedness AS extended_class
-        FROM dp02_dc2_catalogs.Object as obj
-        JOIN dp02_dc2_catalogs.MatchesTruth as truth
-        ON truth.match_objectId = obj.objectId
+        FROM dp02_dc2_catalogs.MatchesTruth AS mt
+        JOIN dp02_dc2_catalogs.TruthSummary AS ts ON mt.id_truth_type = ts.id_truth_type
+        JOIN dp02_dc2_catalogs.Object AS obj ON mt.match_objectId = obj.objectId
         WHERE CONTAINS(POINT('ICRS', coord_ra, coord_dec), CIRCLE('ICRS', {coord.ra.value}, {coord.dec.value}, {radius.value})) = 1
-        AND truth.match_objectId >= 0 
-        AND truth.match_candidate = 1
-        AND truth.truth_type = 2
+        AND mt.match_objectId >= 0 
+        AND mt.match_candidate = 1
+        AND mt.truth_type = 2
+        AND detect_isPrimary = 1
     """
     df = service.search(query).to_table().to_pandas()
     df['MC_SOURCE_ID'] = 0
