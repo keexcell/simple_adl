@@ -5,6 +5,7 @@ __author__ = 'Alex Drlica-Wagner, Sidney Mau and Kabelo Tsiane'
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 import pandas as pd
 
 def gen_contours(mbins, rbins, dmin, dmax, pdet, survey):
@@ -59,7 +60,7 @@ def draw_survey(dist,survey,**kwargs):
     kwargs = setdefaults(kwargs,defaults)
     abs_mag, r_physical,a,b,c = calc_survey(dist,survey)
     sel = abs_mag < b
-    plt.plot(abs_mag[sel],r_physical[sel],**kwargs)
+    plt.plot(abs_mag[sel],r_physical[sel], **kwargs)
 
     return
 
@@ -145,7 +146,8 @@ def calc_survey(dist,survey='lsst'):
 
 
 def plot_osf(sims: pd.DataFrame, title: str, save: bool = False, out_name: str = None,
-             contours: bool = False, survey: str = None, threshold: float = 5.5) -> None:
+             contours: bool = False, survey: str = None, threshold: float = 5.5, 
+             cmap: str = 'viridis', **kwargs) -> None:
     """ Plot the observational selection function
 
     Parameters
@@ -177,6 +179,15 @@ def plot_osf(sims: pd.DataFrame, title: str, save: bool = False, out_name: str =
     axes[0,2].axes.get_yaxis().set_visible(False)
     axes[1,2].axes.get_yaxis().set_visible(False)
     axes[1,1].axes.get_yaxis().set_visible(False)
+    
+    legend_elements = [
+        Line2D([0], [0], color='black', lw=1, ls='--', label='DES'),
+        Line2D([0], [0], color='red', lw=1, ls=':', alpha=0.6, label='LSST Corrected'),
+        Line2D([0], [0], color='red', lw=1, ls='-.', alpha=0.8, label='LSST Measured'),
+        Line2D([0], [0], color='red', lw=2, ls='--', label='LSST Ideal')
+    ]
+    
+    fig.suptitle(title, fontsize=15, x=0.435, y=0.97)
     for i,(dmin,dmax) in enumerate(zip(dbins[:-1],dbins[1:])):
         plt.sca(axes.flat[i])
         plt.xlabel("$M_v$", fontsize=15)
@@ -184,8 +195,6 @@ def plot_osf(sims: pd.DataFrame, title: str, save: bool = False, out_name: str =
         plt.text(-10, 0.5, "%i < D < %i kpc"%(dmin,dmax), fontsize=9, )
         plt.xlim(-10.25,1.75)
         plt.ylim(0, 3.3)
-        if i == 1:
-            plt.title(title, fontsize=15)
         s = sims[(sims['DISTANCE'] >= dmin)&(sims['DISTANCE'] < dmax)]
 
         det = s["SIG"] >= threshold
@@ -196,15 +205,24 @@ def plot_osf(sims: pd.DataFrame, title: str, save: bool = False, out_name: str =
                            weights=det,bins=[mbins,rbins])[0]
 
         pdet = ndet.astype(float)/total
-        im = plt.pcolormesh(mbins,rbins,pdet.T,rasterized=True)
-        draw_survey(np.sqrt(dmin*dmax), survey='des', color='black')
-        draw_survey(np.sqrt(dmin*dmax), survey='lsst_true', color='red', lw=2)
-        draw_survey(np.sqrt(dmin*dmax), survey='lsst_measured', color='red', ls='-.', alpha=0.8)
-        draw_survey(np.sqrt(dmin*dmax), survey='lsst_corrected', color='red', ls= ':', alpha=0.6)
+        im = plt.pcolormesh(mbins,rbins,pdet.T,rasterized=True, cmap=cmap)
+
+        draw_survey(np.sqrt(dmin*dmax), survey='des', color='black', label='DES')
+        draw_survey(np.sqrt(dmin*dmax), survey='lsst_corrected', color='red', ls= ':', alpha=0.6, label='LSST Corrected')
+        draw_survey(np.sqrt(dmin*dmax), survey='lsst_measured', color='red', ls='-.', alpha=0.8, label='LSST Measured')
+        draw_survey(np.sqrt(dmin*dmax), survey='lsst_true', color='red', ls='--', lw=2, label='LSST Ideal')
+        
         if contours:
             gen_contours(mbins, rbins, dmin, dmax, pdet, survey=survey)
 
     cb = fig.colorbar(im, ax=axes.ravel().tolist(), label='Detection Efficiency')
+
+    fig.legend(legend_elements, [e.get_label() for e in legend_elements],
+               loc='upper center',
+               bbox_to_anchor=(0.45, 0.94),
+               ncol=4,
+               frameon=False,
+               fontsize='medium')
 
     if save:
         plt.savefig(out_name)

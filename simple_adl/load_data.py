@@ -151,7 +151,7 @@ def get_sim_file(sim_dir, sim_id = None, truth_matching=True):
     """
     if truth_matching: 
         if sim_id is not None:
-            sims_batch = get_sim_batch(sim_id)
+            sims_batch = get_sim_batch(sim_id=sim_id)
             file = sim_dir + 'sim_population_lsst_dc2_v7_mc_source_id_' + sims_batch + '.fits'
             return(file)
         else: 
@@ -159,7 +159,7 @@ def get_sim_file(sim_dir, sim_id = None, truth_matching=True):
             return(file)
     else: 
         if sim_id is not None:
-            sims_batch = get_sim_batch(sim_id)
+            sims_batch = get_sim_batch(sim_id=sim_id)
             file = sim_dir + 'sim_population_lsst_dc2_v6_mc_source_id_' + sims_batch + '.fits'
             return(file)
         else: 
@@ -234,13 +234,13 @@ def load_field(sim_population, position, service=service, truth_match=True, verb
     """
     sim_population_at_position = sim_population[sim_population[['RA', 'DEC']] == position]
     sim_population_at_position = pd.DataFrame(sim_population_at_position)
-    
-    if len(sim_population_at_position['MC_SOURCE_ID'].values) == 0:
+    mcids = sim_population_at_position['MC_SOURCE_ID'].values
+    if len(mcids) == 0:
         if verbose: print(f'No sims at {position}')
         return
         
     if verbose: 
-        print(f'Satellites at {position} :\n {sim_population_at_position['MC_SOURCE_ID'].values}')
+        print(f'Satellites at {position} :\n {mcids}')
         
     print(f'Querying region {position}')
         
@@ -294,11 +294,11 @@ def load_and_merge(sim_id, truth_matching=True):
     with open('config.yaml') as ymlfile:
         cfg = yaml.load(ymlfile, Loader=yaml.SafeLoader)
         survey = simple_adl.survey.Survey(cfg)
-
+    
     file = get_sim_file(sim_dir, sim_id, truth_matching) 
     sim_population = fits.read(file)
     sim_positions = np.unique(sim_population[['RA', 'DEC']])
-    sim_population = clean_sim_population_data(sim_population)
+    sim_population = clean_sim_pop(sim_population)
     
     radius = 2
     for iii,position in enumerate(sim_positions):
