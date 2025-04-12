@@ -8,6 +8,12 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import pandas as pd
 
+plt.rcParams['xtick.labelsize'] = 16
+plt.rcParams['ytick.labelsize'] = 16
+plt.rcParams['axes.labelsize'] = 16
+plt.rcParams["mathtext.fontset"] = "cm"
+plt.rcParams["font.family"] = "serif"
+
 def gen_contours(mbins, rbins, dmin, dmax, pdet, survey):
     """ Generates the 50% detection efficiency contours used in the observational selection function.
 
@@ -172,7 +178,7 @@ def plot_osf(sims: pd.DataFrame, title: str, save: bool = False, out_name: str =
     # bins in physical radius
     rbins = np.arange(0,3.75,0.3)
 
-    fig,axes = plt.subplots(2,3,figsize=(12,7))
+    fig,axes = plt.subplots(2,3,figsize=(11,7))
     plt.subplots_adjust(wspace=0, hspace=0)
     axes[0,0].axes.get_xaxis().set_visible(False)
     axes[0,1].axes.get_yaxis().set_visible(False)
@@ -181,17 +187,17 @@ def plot_osf(sims: pd.DataFrame, title: str, save: bool = False, out_name: str =
     axes[1,1].axes.get_yaxis().set_visible(False)
     
     legend_elements = [
-        Line2D([0], [0], color='black', lw=1, ls='--', label='DES'),
-        Line2D([0], [0], color='red', lw=1, ls=':', alpha=0.6, label='LSST Corrected'),
+        Line2D([0], [0], color='red', lw=2, ls='--', label='LSST Ideal'),
         Line2D([0], [0], color='red', lw=1, ls='-.', alpha=0.8, label='LSST Measured'),
-        Line2D([0], [0], color='red', lw=2, ls='--', label='LSST Ideal')
+        Line2D([0], [0], color='red', lw=1, ls=':', alpha=0.6, label='LSST Corrected'),
+        Line2D([0], [0], color='black', lw=1, ls='--', label='DES')
     ]
     
-    fig.suptitle(title, fontsize=15, x=0.435, y=0.97)
+    fig.suptitle(title, fontsize=15, x=0.51, y=0.97)
     for i,(dmin,dmax) in enumerate(zip(dbins[:-1],dbins[1:])):
         plt.sca(axes.flat[i])
-        plt.xlabel("$M_v$", fontsize=15)
-        plt.ylabel("$log_{10}$(r/pc)", fontsize=15)
+        plt.xlabel("$M_V$", fontsize=15)
+        plt.ylabel("log$_{10}$(r/pc)", fontsize=15)
         plt.text(-10, 0.5, "%i < D < %i kpc"%(dmin,dmax), fontsize=9, )
         plt.xlim(-10.25,1.75)
         plt.ylim(0, 3.3)
@@ -207,19 +213,21 @@ def plot_osf(sims: pd.DataFrame, title: str, save: bool = False, out_name: str =
         pdet = ndet.astype(float)/total
         im = plt.pcolormesh(mbins,rbins,pdet.T,rasterized=True, cmap=cmap)
 
-        draw_survey(np.sqrt(dmin*dmax), survey='des', color='black', label='DES')
-        draw_survey(np.sqrt(dmin*dmax), survey='lsst_corrected', color='red', ls= ':', alpha=0.6, label='LSST Corrected')
-        draw_survey(np.sqrt(dmin*dmax), survey='lsst_measured', color='red', ls='-.', alpha=0.8, label='LSST Measured')
         draw_survey(np.sqrt(dmin*dmax), survey='lsst_true', color='red', ls='--', lw=2, label='LSST Ideal')
+        draw_survey(np.sqrt(dmin*dmax), survey='lsst_measured', color='red', ls='-.', alpha=0.8, label='LSST Measured')
+        draw_survey(np.sqrt(dmin*dmax), survey='lsst_corrected', color='red', ls= ':', alpha=0.6, label='LSST Corrected')
+        draw_survey(np.sqrt(dmin*dmax), survey='des', color='black', label='DES')
         
         if contours:
             gen_contours(mbins, rbins, dmin, dmax, pdet, survey=survey)
-
-    cb = fig.colorbar(im, ax=axes.ravel().tolist(), label='Detection Efficiency')
+            
+    cb_ax = fig.add_axes([0.92, 0.11, 0.025, 0.77])  # [left, bottom, width, height]
+    cb = fig.colorbar(im, cax=cb_ax, label='Detection Efficiency')
+    # cb = fig.colorbar(im, ax=axes.ravel().tolist(), label='Detection Efficiency')
 
     fig.legend(legend_elements, [e.get_label() for e in legend_elements],
                loc='upper center',
-               bbox_to_anchor=(0.45, 0.94),
+               bbox_to_anchor=(0.51, 0.94),
                ncol=4,
                frameon=False,
                fontsize='medium')
