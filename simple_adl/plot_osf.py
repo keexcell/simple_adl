@@ -233,6 +233,7 @@ def plot_osf(sims: pd.DataFrame, title: str, save: bool = False, out_name: str =
                fontsize='medium')
 
     if save:
-        plt.savefig(out_name)
+        plt.savefig(out_name, bbox_inches='tight')
+
 
     return
