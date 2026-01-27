@@ -12,15 +12,16 @@ import scipy.interpolate
 from collections import OrderedDict as odict
 import os
 import copy
+import inspect
 
 import simple_adl
 
 #------------------------------------------------------------------------------
-
 class Isochrone():
     def __init__(self, age=12.0, metallicity=0.00010, distance_modulus=16.0, survey='des', band_1='g', band_2='r'):
         self.age = age
         self.metallicity = metallicity
+        print(metallicity)
         self.distance_modulus = distance_modulus
         self.survey = survey
         self.band_1 = band_1
@@ -30,11 +31,23 @@ class Isochrone():
         self.hb_stage = 4
         self.hb_spread = 0.1
         if survey == 'des':
-            self.filename = os.path.join(os.path.dirname(simple_adl.__file__),'isochrones/iso_a12.0_z0.00010.dat')
+            try:
+                self.filename = os.path.join(os.path.dirname(simple_adl.__file__), f'isochrones/iso_a{age}_z{metallicity}0.dat')
+            except:
+                self.filename = os.path.join(os.path.dirname(__file__), f'isochrones/iso_a{age}_z{metallicity}0.dat')
             self._parse_des(self.filename)
         elif survey == 'lsst':
-            self.filename = os.path.join(os.path.dirname(simple_adl.__file__),'isochrones/marigo2017/iso_a12.0_z0.00010.dat')
+            try:
+                self.filename = os.path.join(os.path.dirname(simple_adl.__file__), f'isochrones/marigo2017/iso_a{age}_z{metallicity}0.dat')
+            except:
+                self.filename = os.path.join(os.path.dirname(__file__), f'isochrones/marigo2017/iso_a{age}_z{metallicity}0.dat')
             self._parse_lsst(self.filename)
+        elif survey == 'euclid':
+            try: 
+                self.filename = os.path.join(os.path.dirname(simple_adl.__file__),f'isochrones/euclid_parsec/iso_a{age}_z{metallicity}0.dat')
+            except:
+                self.filename = os.path.join(os.path.dirname(__file__),f'isochrones/euclid_parsec/iso_a{age}_z{metallicity}0.dat')
+            self._parse_euclid(self.filename)
 
     columns = dict(
         des = odict([
@@ -81,6 +94,18 @@ class Isochrone():
                 (28,('i',float)),
                 (29,('z',float)),
                 (30,('Y',float)),
+                ]),
+        euclid = odict([
+                (3, ('mass_init',float)),
+                (5, ('mass_act',float)),
+                (6, ('log_lum',float)),
+                (9, ('stage',int)),
+                (28,('VIS',float)),
+                (29,('Y',float)),
+                (30,('Blue',float)),
+                (31,('J',float)),
+                (32,('Red',float)),
+                (33,('H',float)),
                 ]),
         )
     columns['lsst'] = copy.deepcopy(columns['lsst_dp0'])
@@ -140,7 +165,47 @@ class Isochrone():
         self.data = np.genfromtxt(filename,**kwargs)
         # cut out anomalous point:
         # https://github.com/DarkEnergySurvey/ugali/issues/29
-        self.data = self.data[~np.in1d(self.data['stage'], [9])]
+        # originally in1d but that's now depreciated
+        self.data = self.data[~np.isin(self.data['stage'], [9])]
+
+        self.mass_init = self.data['mass_init']
+        self.mass_act  = self.data['mass_act']
+        self.luminosity = 10**self.data['log_lum']
+        self.mag_1 = self.data[self.band_1]
+        self.mag_2 = self.data[self.band_2]
+        self.stage = self.data['stage']
+
+        self.mass_init_upper_bound = np.max(self.mass_init)
+        self.index = len(self.mass_init)
+
+        self.mag = self.mag_1 if self.band_1_detection else self.mag_2
+        self.color = self.mag_1 - self.mag_2
+
+    def _parse_euclid(self,filename):
+        """Reads an isochrone file in the PARSEC (Marigo et al. 2017)
+        format. Creates arrays with the initial stellar mass and
+        corresponding magnitudes for each step along the isochrone.
+
+        Parameters:
+        -----------
+        filename : name of isochrone file to parse
+
+        Returns:
+        --------
+        None
+        """
+        try:
+            columns = self.columns[self.survey.lower()]
+        except KeyError as e:
+            logger.warning('Unrecognized survey: %s'%(self.survey))
+            raise(e)
+
+        kwargs = dict(usecols=list(columns.keys()),dtype=list(columns.values()))
+        self.data = np.genfromtxt(filename,**kwargs)
+        # cut out anomalous point:
+        # https://github.com/DarkEnergySurvey/ugali/issues/29
+        # originally in1d but that's now depreciated
+        self.data = self.data[~np.isin(self.data['stage'], [9])]
 
         self.mass_init = self.data['mass_init']
         self.mass_act  = self.data['mass_act']
