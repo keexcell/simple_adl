@@ -18,10 +18,9 @@ import simple_adl
 
 #------------------------------------------------------------------------------
 class Isochrone():
-    def __init__(self, age=12.0, metallicity=0.00010, distance_modulus=16.0, survey='des', band_1='g', band_2='r'):
+    def __init__(self, age=12.0, metallicity=0.00010, distance_modulus=16.0, survey='lsst', band_1='g', band_2='r'):
         self.age = age
         self.metallicity = metallicity
-        print(metallicity)
         self.distance_modulus = distance_modulus
         self.survey = survey
         self.band_1 = band_1
@@ -30,23 +29,18 @@ class Isochrone():
         #self.imf_type = Chabrier2003
         self.hb_stage = 4
         self.hb_spread = 0.1
+        try:
+            file = os.path.dirname(simple_adl.__file__)
+        except:
+            file = os.path.dirname(__file__)
         if survey == 'des':
-            try:
-                self.filename = os.path.join(os.path.dirname(simple_adl.__file__), f'isochrones/iso_a{age}_z{metallicity}0.dat')
-            except:
-                self.filename = os.path.join(os.path.dirname(__file__), f'isochrones/iso_a{age}_z{metallicity}0.dat')
+            self.filename = os.path.join(file, f'isochrones/iso_a{age}_z{metallicity}0.dat')
             self._parse_des(self.filename)
         elif survey == 'lsst':
-            try:
-                self.filename = os.path.join(os.path.dirname(simple_adl.__file__), f'isochrones/marigo2017/iso_a{age}_z{metallicity}0.dat')
-            except:
-                self.filename = os.path.join(os.path.dirname(__file__), f'isochrones/marigo2017/iso_a{age}_z{metallicity}0.dat')
+            self.filename = os.path.join(file, f'isochrones/marigo2017/iso_a{age}_z{metallicity}0.dat')
             self._parse_lsst(self.filename)
         elif survey == 'euclid':
-            try: 
-                self.filename = os.path.join(os.path.dirname(simple_adl.__file__),f'isochrones/euclid_parsec/iso_a{age}_z{metallicity}0.dat')
-            except:
-                self.filename = os.path.join(os.path.dirname(__file__),f'isochrones/euclid_parsec/iso_a{age}_z{metallicity}0.dat')
+            self.filename = os.path.join(file, f'isochrones/euclid_parsec/iso_a{age}_z{metallicity}0.dat')
             self._parse_euclid(self.filename)
 
     columns = dict(
