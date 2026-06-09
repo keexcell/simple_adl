@@ -29,6 +29,81 @@ class Isochrone():
         #self.imf_type = Chabrier2003
         self.hb_stage = 4
         self.hb_spread = 0.1
+
+        self.columns = dict(
+            des = odict([
+                    (3, ('mass_init',float)),
+                    (4, ('mass_act',float)),
+                    (5, ('log_lum',float)),
+                    (10,('g',float)),
+                    (11,('r',float)),
+                    (12,('i',float)),
+                    (13,('z',float)),
+                    (14,('Y',float)),
+                    (16,('stage',int)),
+                    ]),
+            sdss = odict([
+                    (3, ('mass_init',float)),
+                    (4, ('mass_act',float)),
+                    (5, ('log_lum',float)),
+                    (9, ('u',float)),
+                    (10,('g',float)),
+                    (11,('r',float)),
+                    (12,('i',float)),
+                    (13,('z',float)),
+                    (15,('stage',int)),
+                    ]),
+            ps1 = odict([
+                    (3, ('mass_init',float)),
+                    (4, ('mass_act',float)),
+                    (5, ('log_lum',float)),
+                    (9, ('g',float)),
+                    (10,('r',float)),
+                    (11,('i',float)),
+                    (12,('z',float)),
+                    (13,('y',float)),
+                    (16,('stage',int)),
+                    ]),
+            lsst_dp0 = odict([
+                    (3, ('mass_init',float)),
+                    (5, ('mass_act',float)),
+                    (6, ('log_lum',float)),
+                    (9, ('stage',int)),
+                    (25,('u',float)),
+                    (26,('g',float)),
+                    (27,('r',float)),
+                    (28,('i',float)),
+                    (29,('z',float)),
+                    (30,('Y',float)),
+                    ]),
+            mixed = odict([
+                    (3, ('mass_init',float)),
+                    (5, ('mass_act',float)),
+                    (6, ('log_lum',float)),
+                    (9, ('stage',int)),
+                    (28,('u',float)),
+                    (29,('g',float)),
+                    (30,('r',float)),
+                    (31,('i',float)),
+                    (32,('z',float)),
+                    (33,('y',float)),
+                    (37,('VIS',float)),
+                    (38,('Y',float)),
+                    (39,('Blue',float)),
+                    (40,('J',float)),
+                    (41,('Red',float)),
+                    (42,('H',float)),
+                    (43,('F062',float)),
+                    (44,('F087',float)),
+                    (45,('F106',float)),
+                    (46,('F129',float)),
+                    (47,('F158',float)),
+                    (48,('F184',float)),
+                    (49,('F146',float)),
+                    (50,('F213',float)),
+                    ]),
+            )
+        self.columns['lsst'] = copy.deepcopy(self.columns['lsst_dp0'])
         try:
             file = os.path.dirname(simple_adl.__file__)
         except:
@@ -36,73 +111,12 @@ class Isochrone():
         if survey == 'des':
             self.filename = os.path.join(file, f'isochrones/iso_a{age}_z{metallicity}0.dat')
             self._parse_des(self.filename)
-        elif survey == 'lsst':
+        elif survey == 'lsst_dp0':
             self.filename = os.path.join(file, f'isochrones/marigo2017/iso_a{age}_z{metallicity}0.dat')
-            self._parse_lsst(self.filename)
-        elif survey == 'euclid':
-            self.filename = os.path.join(file, f'isochrones/euclid_parsec/iso_a{age}_z{metallicity}0.dat')
-            self._parse_euclid(self.filename)
-
-    columns = dict(
-        des = odict([
-                (3, ('mass_init',float)),
-                (4, ('mass_act',float)),
-                (5, ('log_lum',float)),
-                (10,('g',float)),
-                (11,('r',float)),
-                (12,('i',float)),
-                (13,('z',float)),
-                (14,('Y',float)),
-                (16,('stage',int)),
-                ]),
-        sdss = odict([
-                (3, ('mass_init',float)),
-                (4, ('mass_act',float)),
-                (5, ('log_lum',float)),
-                (9, ('u',float)),
-                (10,('g',float)),
-                (11,('r',float)),
-                (12,('i',float)),
-                (13,('z',float)),
-                (15,('stage',int)),
-                ]),
-        ps1 = odict([
-                (3, ('mass_init',float)),
-                (4, ('mass_act',float)),
-                (5, ('log_lum',float)),
-                (9, ('g',float)),
-                (10,('r',float)),
-                (11,('i',float)),
-                (12,('z',float)),
-                (13,('y',float)),
-                (16,('stage',int)),
-                ]),
-        lsst_dp0 = odict([
-                (3, ('mass_init',float)),
-                (5, ('mass_act',float)),
-                (6, ('log_lum',float)),
-                (9, ('stage',int)),
-                (25,('u',float)),
-                (26,('g',float)),
-                (27,('r',float)),
-                (28,('i',float)),
-                (29,('z',float)),
-                (30,('Y',float)),
-                ]),
-        euclid = odict([
-                (3, ('mass_init',float)),
-                (5, ('mass_act',float)),
-                (6, ('log_lum',float)),
-                (9, ('stage',int)),
-                (28,('VIS',float)),
-                (29,('Y',float)),
-                (30,('Blue',float)),
-                (31,('J',float)),
-                (32,('Red',float)),
-                (33,('H',float)),
-                ]),
-        )
-    columns['lsst'] = copy.deepcopy(columns['lsst_dp0'])
+            self._parse_lsstdp0(self.filename)
+        else:
+            self.filename = os.path.join(file, f'isochrones/lsst_euclid_roman_gaia/iso_a{age}_z{metallicity}0.dat')
+            self._parse_mixed(self.filename)
 
 
     def _parse_des(self,filename):
@@ -136,7 +150,7 @@ class Isochrone():
         self.mag = self.mag_1 if self.band_1_detection else self.mag_2
         self.color = self.mag_1 - self.mag_2
 
-    def _parse_lsst(self,filename):
+    def _parse_lsstdp0(self,filename):
         """Reads an isochrone file in the Marigo et al. 2017
         format. Creates arrays with the initial stellar mass and
         corresponding magnitudes for each step along the isochrone.
@@ -160,7 +174,7 @@ class Isochrone():
         # cut out anomalous point:
         # https://github.com/DarkEnergySurvey/ugali/issues/29
         # originally in1d but that's now depreciated
-        self.data = self.data[~np.isin(self.data['stage'], [9])]
+        self.data = self.data[~np.isin(self.data['stage'], [8, 9])]
 
         self.mass_init = self.data['mass_init']
         self.mass_act  = self.data['mass_act']
@@ -175,7 +189,7 @@ class Isochrone():
         self.mag = self.mag_1 if self.band_1_detection else self.mag_2
         self.color = self.mag_1 - self.mag_2
 
-    def _parse_euclid(self,filename):
+    def _parse_mixed(self,filename):
         """Reads an isochrone file in the PARSEC (Marigo et al. 2017)
         format. Creates arrays with the initial stellar mass and
         corresponding magnitudes for each step along the isochrone.
@@ -207,6 +221,9 @@ class Isochrone():
         self.mag_1 = self.data[self.band_1]
         self.mag_2 = self.data[self.band_2]
         self.stage = self.data['stage']
+
+        ## TO DO! ROMAN IS IN VEGA MAGNITUDE
+        ## IF IMPLEMENTING ROMAN, NEED CONVERSION
 
         self.mass_init_upper_bound = np.max(self.mass_init)
         self.index = len(self.mass_init)
