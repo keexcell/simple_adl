@@ -14,7 +14,7 @@ import os
 import copy
 import inspect
 
-import simple_adl
+import external.simple_adl
 
 #------------------------------------------------------------------------------
 class Isochrone():
