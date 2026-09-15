@@ -14,7 +14,7 @@ import os
 import copy
 import inspect
 
-import external.simple_adl
+import simple_adl
 
 #------------------------------------------------------------------------------
 class Isochrone():
@@ -109,10 +109,10 @@ class Isochrone():
         except:
             file = os.path.dirname(__file__)
         if survey == 'des':
-            self.filename = os.path.join(file, f'isochrones/iso_a{age}_z{metallicity}0.dat')
+            self.filename = os.path.join(file, f'isochrones/des/iso_a{age}_z{metallicity}0.dat')
             self._parse_des(self.filename)
         elif survey == 'lsst_dp0':
-            self.filename = os.path.join(file, f'isochrones/marigo2017/iso_a{age}_z{metallicity}0.dat')
+            self.filename = os.path.join(file, f'isochrones/lsst_dp0/iso_a{age}_z{metallicity}0.dat')
             self._parse_lsstdp0(self.filename)
         else:
             self.filename = os.path.join(file, f'isochrones/lsst_euclid_roman_gaia/iso_a{age}_z{metallicity}0.dat')
